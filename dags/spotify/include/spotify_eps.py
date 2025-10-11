@@ -167,10 +167,6 @@ class SpotifyAPI:
             eps_df = self.get_transformed_search_eps(chart_file=chart_file, region=region, episodeUris_list=episodeUris_list)
             merged_df = pd.merge(chart_df, eps_df, left_on='episodeUri', right_on='id', how='left')
 
-            name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
-            if not name_mismatch.empty:
-                    raise ValueError("Name mismatch found between chart data and episode data.")
-
             df_result = pd.concat([df_result, merged_df], ignore_index=True)
         df_result = df_result.drop(columns=['id','name'])
         return df_result
@@ -183,10 +179,6 @@ class SpotifyAPI:
             eps_df = self.get_transformed_search_eps(chart=chart, region=region)
             
             merged_df = pd.merge(chart_df, eps_df, left_on='episodeUri', right_on='id', how='left')
-
-            name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
-            if not name_mismatch.empty:
-                    raise ValueError("Name mismatch found between chart data and episode data.")
 
             df_result = pd.concat([df_result, merged_df], ignore_index=True)
         
