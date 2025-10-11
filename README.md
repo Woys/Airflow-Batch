@@ -17,8 +17,6 @@
 - **Data Formats:** Parquet files and a consolidated CSV file
 - **Update Frequency:** Daily
 - **Key Fields:**
-  - `pipeline`: Name of the data pipeline
-  - `function`: Function within the pipeline
   - `date`: Date of data collection
   - `region`: Country code
   - `episodeUri`: Unique identifier for the episode on Spotify
