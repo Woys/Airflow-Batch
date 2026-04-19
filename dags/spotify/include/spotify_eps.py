@@ -1,5 +1,5 @@
 try:
-    from airflow.models import Variable
+    from airflow.sdk import Variable
 except Exception:  # pragma: no cover - fallback for newer/partial Airflow layouts
     from airflow.sdk import Variable
 import os
@@ -192,7 +192,12 @@ class SpotifyAPI:
 
             name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
             if not name_mismatch.empty:
-                    raise ValueError("Name mismatch found between chart data and episode data.")
+                mismatched_ids = name_mismatch['episodeUri'].tolist()
+                logging.warning(
+                    f"Name mismatch found for {len(name_mismatch)} items in region '{region}'. "
+                    f"Sample mismatched IDs: {mismatched_ids[:5]}"
+                )
+
 
             df_result = pd.concat([df_result, merged_df], ignore_index=True)
         df_result = df_result.drop(columns=['id','name'])
@@ -209,7 +214,11 @@ class SpotifyAPI:
 
             name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
             if not name_mismatch.empty:
-                    raise ValueError("Name mismatch found between chart data and episode data.")
+                mismatched_ids = name_mismatch['episodeUri'].tolist()
+                logging.warning(
+                    f"Name mismatch found for {len(name_mismatch)} items in region '{region}'. "
+                    f"Sample mismatched IDs: {mismatched_ids[:5]}"
+                )
 
             df_result = pd.concat([df_result, merged_df], ignore_index=True)
         

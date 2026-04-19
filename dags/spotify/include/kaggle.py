@@ -1,5 +1,5 @@
 try:
-    from airflow.models import Variable
+    from airflow.sdk import Variable
 except Exception:  # pragma: no cover - fallback for newer/partial Airflow layouts
     Variable = None  # type: ignore[assignment]
 

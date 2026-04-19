@@ -4,7 +4,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from airflow.models import Variable
+from airflow.sdk import Variable
 from airflow.sdk import dag, get_current_context, task
 from pendulum import datetime, duration
 
@@ -35,34 +35,34 @@ def build_ingestion_config() -> dict:
     logical_date = context["dag_run"].logical_date
     run_date = logical_date.date().isoformat()
 
-    s3_bucket = Variable.get("SP_S3_BUCKET", default_var="")
+    s3_bucket = Variable.get("SP_S3_BUCKET", default="")
     if not s3_bucket:
         # Backward-compatible fallback for older envs.
-        s3_bucket = Variable.get("DATASET_S3_BUCKET", default_var="")
+        s3_bucket = Variable.get("DATASET_S3_BUCKET", default="")
     ensure_non_empty_bucket(s3_bucket)
 
     search_terms_raw = Variable.get(
         "TI_SEARCH_TERMS",
-        default_var='["data engineering", "machine learning", "airflow"]',
+        default='["data engineering", "machine learning", "airflow"]',
     )
     search_terms = parse_search_terms(search_terms_raw)
 
     max_records_per_source = int(
-        Variable.get("TI_MAX_RECORDS_PER_SOURCE", default_var="200")
+        Variable.get("TI_MAX_RECORDS_PER_SOURCE", default="200")
     )
     request_delay_seconds = float(
-        Variable.get("TI_REQUEST_DELAY_SECONDS", default_var="1.0")
+        Variable.get("TI_REQUEST_DELAY_SECONDS", default="1.0")
     )
-    crossref_email = Variable.get("TI_CROSSREF_EMAIL", default_var="")
-    openalex_api_key = Variable.get("TI_OPENALEX_API_KEY", default_var="")
-    newsapi_api_key = Variable.get("TI_NEWSAPI_KEY", default_var="")
-    newsapi_language = Variable.get("TI_NEWSAPI_LANGUAGE", default_var="en")
-    hn_item_type = Variable.get("TI_HN_ITEM_TYPE", default_var="story")
+    crossref_email = Variable.get("TI_CROSSREF_EMAIL", default="")
+    openalex_api_key = Variable.get("TI_OPENALEX_API_KEY", default="")
+    newsapi_api_key = Variable.get("TI_NEWSAPI_KEY", default="")
+    newsapi_language = Variable.get("TI_NEWSAPI_LANGUAGE", default="en")
+    hn_item_type = Variable.get("TI_HN_ITEM_TYPE", default="story")
     hn_use_date_sort = bool_env(
-        Variable.get("TI_HN_USE_DATE_SORT", default_var="true")
+        Variable.get("TI_HN_USE_DATE_SORT", default="true")
     )
     min_rows_to_publish = int(
-        Variable.get("TI_MIN_ROWS_TO_PUBLISH", default_var="1")
+        Variable.get("TI_MIN_ROWS_TO_PUBLISH", default="1")
     )
 
     apply_openalex_key(openalex_api_key)
