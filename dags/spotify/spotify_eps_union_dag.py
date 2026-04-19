@@ -10,10 +10,13 @@ from airflow.sdk import Variable
 s3_bucket = Variable.get("SP_S3_BUCKET")
 s3_key = 'top-podcasts/'
 s3_union_key = 'top-podcasts-union/'
+# keep_cols = ['date', 'rank', 'region', 'chartRankMove', 'episodeUri', 'showUri',
+#             'episodeName', 'description', 'show.name', 'show.description',
+#             'show.publisher', 'duration_ms', 'explicit', 'languages', 'release_date',
+#             'release_date_precision', 'show.media_type', 'show.total_episodes']
 keep_cols = ['date', 'rank', 'region', 'chartRankMove', 'episodeUri', 'showUri',
-            'episodeName', 'description', 'show.name', 'show.description',
-            'show.publisher', 'duration_ms', 'explicit', 'languages', 'release_date',
-            'release_date_precision', 'show.media_type', 'show.total_episodes']
+            'episodeName', 'description', 'show.name', 'show.publisher', 'duration_ms', 
+            'explicit', 'languages', 'release_date', 'show.media_type', 'show.total_episodes']
 
 
 @task
