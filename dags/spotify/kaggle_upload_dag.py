@@ -2,12 +2,12 @@ import os
 import shutil
 import tempfile
 from pendulum import datetime, duration
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from spotify.include.kaggle import create_kaggle_metadata, create_kaggle_dataset
 from airflow.models import Variable
 from airflow.utils.log.logging_mixin import LoggingMixin
-from airflow.utils.trigger_rule import TriggerRule
+from airflow.task.trigger_rule import TriggerRule
 
 S3_BUCKET = Variable.get("SP_S3_BUCKET")
 S3_KEY = 'top-podcasts-union/'
@@ -72,7 +72,7 @@ def cleanup_temp_dir(tmp_dir: str):
 @dag(
     start_date=datetime(2024, 9, 1),
     max_active_runs=1,
-    schedule_interval=None,
+    schedule=None,
     default_args={"retries": 2, "retry_delay": duration(minutes=1)},
     catchup=False,
 )
