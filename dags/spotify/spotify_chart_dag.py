@@ -5,7 +5,7 @@ from pendulum import datetime, duration
 from airflow.sdk import dag, task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from spotify.include.spotify_eps import SpotifyAPI
-from airflow.models import Variable
+from airflow.sdk import Variable
 
 s3_bucket = Variable.get("SP_S3_BUCKET")
 s3_key = 'top-charts/'
