@@ -1,5 +1,13 @@
-from airflow.models import Variable
-from airflow.exceptions import AirflowException
+try:
+    from airflow.models import Variable
+except Exception:  # pragma: no cover - fallback for newer/partial Airflow layouts
+    Variable = None  # type: ignore[assignment]
+
+try:
+    from airflow.exceptions import AirflowException
+except Exception:  # pragma: no cover
+    class AirflowException(Exception):
+        pass
 from datetime import date
 import logging
 import sys
@@ -8,8 +16,23 @@ import json
 from zipfile import ZipFile
 import subprocess
 
-os.environ['KAGGLE_USERNAME'] = Variable.get("KAGGLE_USERNAME")
-os.environ['KAGGLE_KEY'] = Variable.get("KAGGLE_KEY")
+
+def _resolve_var(name: str, default: str = "") -> str:
+    airflow_env_name = f"AIRFLOW_VAR_{name}"
+    if airflow_env_name in os.environ:
+        return os.environ.get(airflow_env_name, default)
+
+    if Variable is not None:
+        try:
+            return str(Variable.get(name, default_var=default))
+        except Exception:
+            pass
+
+    return os.environ.get(name, default)
+
+
+os.environ["KAGGLE_USERNAME"] = _resolve_var("KAGGLE_USERNAME")
+os.environ["KAGGLE_KEY"] = _resolve_var("KAGGLE_KEY")
 
 today = date.today()
 

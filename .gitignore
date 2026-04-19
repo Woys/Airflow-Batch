@@ -5,6 +5,7 @@
 !LICENSE
 !/assets/
 !Dockerfile
+!Makefile
 !requirements.txt
 
 # airflow
@@ -14,3 +15,11 @@
 !/dags/
 /dags/*
 !/dags/spotify/
+!/dags/research/
+# tests
+!/tests/
+!/tests/**
+!pytest.ini
+!/.github/
+!/.github/workflows/
+!/.github/workflows/**

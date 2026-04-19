@@ -4,14 +4,13 @@ import tempfile
 import pandas as pd
 from datetime import date
 from pendulum import datetime, duration
-from airflow.decorators import dag, task
+from airflow.sdk import Param, dag, task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.exceptions import AirflowException
 from spotify.include.spotify_eps import SpotifyAPI
 from airflow.models import Variable
 from airflow.utils.log.logging_mixin import LoggingMixin
-from airflow.utils.trigger_rule import TriggerRule
-from airflow.models.param import Param
+from airflow.task.trigger_rule import TriggerRule
 
 s3_bucket = Variable.get("SP_S3_BUCKET")
 s3_key = 'top-charts/'
@@ -22,12 +21,8 @@ file_name_out = f"top_podcasts_{today}.parquet"
 regions = ["ar","au","at","br","ca","cl" ,"co","fr","de","in","id","ie","it","jp","mx","nz","ph","pl","es","nl","gb","us"]
 
 params = {
-    "start_date": Param("",type="string",format="date-time"),
-    "end_date": Param("",type="string",format="date-time"),
-    "max_active_runs": 1,
-    "retries": 2, 
-    "retry_delay": duration(minutes=1),
-    "catchup": False
+    "start_date": Param("", type="string", format="date-time"),
+    "end_date": Param("", type="string", format="date-time"),
 }
 
 @task
@@ -78,8 +73,12 @@ def cleanup_temp_dir(tmp_dir: str):
         logger.warning(f"Temporary directory {tmp_dir} does not exist")
 
 @dag(
-    schedule_interval= None,
-    params = params
+    start_date=datetime(2024, 9, 1),
+    max_active_runs=1,
+    schedule=None,
+    default_args={"retries": 2, "retry_delay": duration(minutes=1)},
+    catchup=False,
+    params=params,
 )
 def spotify_eps_backfill():
     tmp_dir = create_temp_dir()

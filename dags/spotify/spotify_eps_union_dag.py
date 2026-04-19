@@ -2,7 +2,7 @@ import os
 import tempfile
 import pandas as pd
 from pendulum import datetime, duration
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from spotify.include.spotify_eps import SpotifyAPI
 from airflow.models import Variable
@@ -71,7 +71,7 @@ def union_parquet_files(s3_key: str, s3_bucket: str, s3_union_key: str, keep_col
 @dag(
     start_date=datetime(2024, 9, 1),
     max_active_runs=1,
-    schedule_interval=None,
+    schedule=None,
     default_args={"retries": 2, "retry_delay": duration(minutes=1)},
     catchup=False,
 )

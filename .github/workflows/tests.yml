@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    env:
+      AIRFLOW_HOME: /tmp/airflow
+      AIRFLOW_VAR_SP_S3_BUCKET: test-bucket
+      AIRFLOW_VAR_KAGGLE_USERNAME: test-user
+      AIRFLOW_VAR_KAGGLE_KEY: test-key
+      AIRFLOW_VAR_SP_CLIENT_ID: test-client
+      AIRFLOW_VAR_SP_CLIENT_SECRET: test-secret
+      AIRFLOW_VAR_TI_SEARCH_TERMS: "[\"data engineering\"]"
+      AIRFLOW_VAR_TI_MAX_RECORDS_PER_SOURCE: "10"
+      AIRFLOW_VAR_TI_REQUEST_DELAY_SECONDS: "1.0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "apache-airflow==3.1.8" -r requirements.txt
+
+      - name: Run pytest with coverage gate
+        run: python -m pytest
