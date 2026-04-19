@@ -24,8 +24,9 @@ def _resolve_var(name: str, default: str = "") -> str:
 
     if Variable is not None:
         try:
-            return str(Variable.get(name, default_var=default))
-        except Exception:
+            return str(Variable.get(name, default=default))
+        except Exception as e:
+            print(f"Warning: Failed to get Airflow Variable {name}: {e}")
             pass
 
     return os.environ.get(name, default)
@@ -87,13 +88,13 @@ def create_kaggle_dataset(kaggle_folder: str, logger: logging.Logger) -> None:
             f"ls {kaggle_folder}", shell=True, check=True, capture_output=True, text=True)
         logger.info(f"Files: {files.stdout}")
 
-        command = f"kaggle datasets create -p '{kaggle_folder}'"
+        command = f"PYTHONWARNINGS=\"ignore\" kaggle datasets create -p '{kaggle_folder}'"
         result = subprocess.run(command, shell=True,
                                 check=True, capture_output=True, text=True)
         logger.info(f"Command succeeded: {result.stdout}")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Command failed with error: {e.stderr}")
-        raise AirflowException(f"Task failed due to: {e.stderr}")
+        logger.error(f"Command failed with error: stderr={e.stderr}, stdout={e.stdout}")
+        raise AirflowException(f"Task failed due to: stderr={e.stderr}, stdout={e.stdout}")
 
 
 def update_kaggle_dataset(kaggle_folder: str, logger: logging.Logger) -> None:
@@ -105,24 +106,24 @@ def update_kaggle_dataset(kaggle_folder: str, logger: logging.Logger) -> None:
             f"ls {kaggle_folder}", shell=True, check=True, capture_output=True, text=True)
         logger.info(f"Files: {files.stdout}")
 
-        command = f"kaggle datasets version -p '{
+        command = f"PYTHONWARNINGS=\"ignore\" kaggle datasets version -p '{
             kaggle_folder}' -m '{today} Update' -r zip"
         result = subprocess.run(command, shell=True,
                                 check=True, capture_output=True, text=True)
         logger.info(f"Command succeeded: {result.stdout}")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Command failed with error: {e.stderr}")
-        raise AirflowException(f"Task failed due to: {e.stderr}")
+        logger.error(f"Command failed with error: stderr={e.stderr}, stdout={e.stdout}")
+        raise AirflowException(f"Task failed due to: stderr={e.stderr}, stdout={e.stdout}")
 
 
 def upload_kaggle_dataset(dataset_id: str, logger: logging.Logger) -> None:
     """Downloads a Kaggle dataset."""
     logger.info('Starting to download dataset from Kaggle')
     try:
-        command = f"kaggle datasets download {dataset_id}"
+        command = f"PYTHONWARNINGS=\"ignore\" kaggle datasets download {dataset_id}"
         result = subprocess.run(command, shell=True,
                                 check=True, capture_output=True, text=True)
         logger.info(f"Command succeeded: {result.stdout}")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Command failed with error: {e.stderr}")
-        raise AirflowException(f"Task failed due to: {e.stderr}")
+        logger.error(f"Command failed with error: stderr={e.stderr}, stdout={e.stdout}")
+        raise AirflowException(f"Task failed due to: stderr={e.stderr}, stdout={e.stdout}")
