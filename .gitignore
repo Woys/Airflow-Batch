@@ -32,3 +32,8 @@
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Explicitly ignore sensitive/scratch data
+.env
+secrets/
+scratch/

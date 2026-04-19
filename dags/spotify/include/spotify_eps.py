@@ -190,7 +190,19 @@ class SpotifyAPI:
             eps_df = self.get_transformed_search_eps(chart_file=chart_file, region=region, episodeUris_list=episodeUris_list)
             merged_df = pd.merge(chart_df, eps_df, left_on='episodeUri', right_on='id', how='left')
 
-            name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
+            missing_eps = merged_df[merged_df['name'].isna()]
+            if not missing_eps.empty:
+                missing_ids = missing_eps['episodeUri'].tolist()
+                logging.warning(
+                    f"Missing episode data for {len(missing_eps)} items in region '{region}'. "
+                    f"Sample missing IDs: {missing_ids[:5]}"
+                )
+
+            valid_eps = merged_df[merged_df['name'].notna()]
+            name_mismatch = valid_eps[
+                valid_eps['episodeName'].str.strip().str.lower() != 
+                valid_eps['name'].str.strip().str.lower()
+            ]
             if not name_mismatch.empty:
                 mismatched_ids = name_mismatch['episodeUri'].tolist()
                 logging.warning(
@@ -212,7 +224,19 @@ class SpotifyAPI:
             
             merged_df = pd.merge(chart_df, eps_df, left_on='episodeUri', right_on='id', how='left')
 
-            name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
+            missing_eps = merged_df[merged_df['name'].isna()]
+            if not missing_eps.empty:
+                missing_ids = missing_eps['episodeUri'].tolist()
+                logging.warning(
+                    f"Missing episode data for {len(missing_eps)} items in region '{region}'. "
+                    f"Sample missing IDs: {missing_ids[:5]}"
+                )
+
+            valid_eps = merged_df[merged_df['name'].notna()]
+            name_mismatch = valid_eps[
+                valid_eps['episodeName'].str.strip().str.lower() != 
+                valid_eps['name'].str.strip().str.lower()
+            ]
             if not name_mismatch.empty:
                 mismatched_ids = name_mismatch['episodeUri'].tolist()
                 logging.warning(
