@@ -5,7 +5,7 @@ from pendulum import datetime, duration
 from airflow.sdk import dag, task
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from spotify.include.kaggle import create_kaggle_metadata, update_kaggle_dataset
-from airflow.models import Variable
+from airflow.sdk import Variable
 from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.task.trigger_rule import TriggerRule
 
