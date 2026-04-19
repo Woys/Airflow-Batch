@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 import base64
 import json
@@ -287,7 +288,7 @@ def test_get_charts_eps_file_merges_and_drops_id_name(monkeypatch: pytest.Monkey
     assert "name" not in frame.columns
 
 
-def test_get_charts_eps_file_raises_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI) -> None:
+def test_get_charts_eps_file_logs_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI, caplog: pytest.LogCaptureFixture) -> None:
     chart_df = pd.DataFrame([{"region": "us", "episodeUri": "id1", "episodeName": "Expected"}])
     monkeypatch.setattr(spotify_eps.pd, "read_parquet", lambda path: chart_df)
     monkeypatch.setattr(
@@ -296,8 +297,11 @@ def test_get_charts_eps_file_raises_on_name_mismatch(monkeypatch: pytest.MonkeyP
         lambda **kwargs: pd.DataFrame({"id": ["id1"], "name": ["Other"]}),
     )
 
-    with pytest.raises(ValueError, match="Name mismatch"):
+    with caplog.at_level(logging.WARNING):
         api.get_charts_eps_file("chart.parquet", regions=["us"])
+    
+    assert "Name mismatch found" in caplog.text
+    assert "id1" in caplog.text
 
 
 def test_get_charts_eps_merges_regions(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI) -> None:
@@ -328,7 +332,7 @@ def test_get_charts_eps_merges_regions(monkeypatch: pytest.MonkeyPatch, api: spo
     assert "name" not in frame.columns
 
 
-def test_get_charts_eps_raises_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI) -> None:
+def test_get_charts_eps_logs_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI, caplog: pytest.LogCaptureFixture) -> None:
     monkeypatch.setattr(
         api,
         "get_transformed_podcastchart",
@@ -342,5 +346,8 @@ def test_get_charts_eps_raises_on_name_mismatch(monkeypatch: pytest.MonkeyPatch,
         lambda **kwargs: pd.DataFrame({"id": ["id1"], "name": ["Different"]}),
     )
 
-    with pytest.raises(ValueError, match="Name mismatch"):
+    with caplog.at_level(logging.WARNING):
         api.get_charts_eps(regions=["us"])
+    
+    assert "Name mismatch found" in caplog.text
+    assert "id1" in caplog.text
