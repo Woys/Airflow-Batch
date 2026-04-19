@@ -55,8 +55,8 @@ class SpotifyAPI:
         self.client_id = Variable.get("SP_CLIENT_ID")
         self.client_secret = Variable.get("SP_CLIENT_SECRET")
         self.token = self._get_token()
-        self.podcastchart_data = None 
-        self.episode_data = {}
+        self.podcastchart_data = None  # To store podcast chart data
+        self.episode_data = {}  # To store episode data
 
     def _get_token(self) -> str:
         auth = f"{self.client_id}:{self.client_secret}"
@@ -79,9 +79,9 @@ class SpotifyAPI:
 
     def _fetch_podcastchart(self, chart: str, region: str):
         if self.podcastchart_data is None:
-            url = f"https://podcastcharts.spotify.com/api/charts/{chart}"
+            url = f"https://podcastcharts.byspotify.com/api/charts/{chart}"
             params = {"region": region}
-            headers = {"Referer": "https://podcastcharts.spotify.com/"}
+            headers = {"Referer": "https://podcastcharts.byspotify.com/"}
 
             try:
                 response = get(url, headers=headers, params=params)
@@ -89,25 +89,24 @@ class SpotifyAPI:
                 data = response.json()
                 self.podcastchart_data = [PodcastChartItem(**item) for item in data]
             except (exceptions.RequestException, ValidationError) as e:
-                logging.error(f"Failed to fetch charts: {e}")
-                raise SystemExit(1) from e
+                raise SystemExit(e)
             logging.info(f"Fetched _fetch_podcastchart: {region}")
 
     def _fetch_episodes(self, episode_ids: str, region: str = 'us'):
         if episode_ids not in self.episode_data:
             url = "https://api.spotify.com/v1/episodes"
-            params = {"ids": episode_ids, "market": region}
+            query = f"?ids={episode_ids}&market={region}"
+            url_query = url + query
             headers = self._get_auth_header()
 
             try:
-                response = get(url, headers=headers, params=params)
+                response = get(url_query, headers=headers)
                 response.raise_for_status()
                 data = response.json()
                 self.episode_data[episode_ids] = Episodes(**data)
             except (exceptions.RequestException, ValidationError) as e:
-                logging.error(f"Failed to fetch episode metadata: {e}")
-                raise
-            logging.info(f"Fetched _fetch_episodes metadata for IDs: {episode_ids[:30]}...")
+                raise SystemExit(e)
+            logging.info(f"Fetched _fetch_episodes: {url_query}")
 
     def get_transformed_podcastchart(self, chart: str = "top-episodes", region: str = "us") -> pd.DataFrame:
         self._fetch_podcastchart(chart, region)
@@ -115,42 +114,41 @@ class SpotifyAPI:
 
         charts = []
         for i, item in enumerate(self.podcastchart_data):
-            # Safe slice handling for URIs
-            ep_id = item.episodeUri.split(':')[-1] if ':' in item.episodeUri else item.episodeUri
-            show_id = item.showUri.split(':')[-1] if ':' in item.showUri else item.showUri
-            
             charts.append({
                 "date": today,
                 "rank": i + 1,
                 "region": region,
                 "chartRankMove": item.chartRankMove,
-                "episodeUri": ep_id,
-                "showUri": show_id,
+                "episodeUri": item.episodeUri[16:],
+                "showUri": item.showUri[13:],
                 "episodeName": item.episodeName
             })
         return pd.DataFrame(charts)
 
     def get_transformed_podcastcharts(self, chart: str = "top-episodes", regions: list = ["us"]) -> pd.DataFrame:
-        frames = [self.get_transformed_podcastchart(chart=chart, region=region) for region in regions]
-        return pd.concat(frames, ignore_index=True)
+        df_result = pd.DataFrame()
+        for region in regions:
+            self.podcastchart_data = None 
+            chart_df = self.get_transformed_podcastchart(chart, region)
+            df_result = pd.concat([df_result, chart_df], ignore_index=True)
+        return df_result
 
-    def get_transformed_search_eps(self, **kwargs: Any) -> pd.DataFrame:
-        region = kwargs.get("region", "us")
-        if "chart" in kwargs:
-            self._fetch_podcastchart(kwargs.get("chart"), region)
-            episodeUris_list = [item.episodeUri.split(':')[-1] for item in self.podcastchart_data]
-        elif "episodeUris_list" in kwargs:
+    def get_transformed_search_eps(self, **kwargs: str) -> pd.DataFrame:
+        if "chart" in kwargs and "region" in kwargs:
+            self._fetch_podcastchart(kwargs.get("chart"), kwargs.get("region"))
+            episodeUris_list = [item.episodeUri[16:] for item in self.podcastchart_data]
+        elif "chart_file" in kwargs:
             episodeUris_list = kwargs.get("episodeUris_list")
         else:
-            raise ValueError(f"get_transformed_search_eps missing required params: {kwargs}")
+            raise ValueError(f"get_transformed_search_eps has no chart,region, or chart_file in kwargs: {kwargs}")
         
         episodes_data = []
         for i in range(0, len(episodeUris_list), 50):
             episodeUris_selected = episodeUris_list[i:i + 50]
-            episodeUris_str = ",".join(episodeUris_selected)
-            self._fetch_episodes(episodeUris_str, region)
+            episodeUris = ",".join(episodeUris_selected)
+            self._fetch_episodes(episodeUris,kwargs.get("region"))
 
-            validated_episodes = self.episode_data[episodeUris_str]
+            validated_episodes = self.episode_data[episodeUris]
 
             for episode in validated_episodes.episodes:
                 if episode:
@@ -183,21 +181,22 @@ class SpotifyAPI:
 
         return pd.DataFrame(episodes_data)
     
-    def _check_name_mismatch(self, df: pd.DataFrame):
-        """Helper to log mismatches without crashing the DAG."""
-        # 1. Ignore cases where the API returned no name (NaN)
-        # 2. Lowercase and strip both sides to avoid spacing/casing false positives
-        mismatch_mask = (
-            df['name'].notnull() & 
-            (df['episodeName'].str.lower().str.strip() != df['name'].str.lower().str.strip())
-        )
-        
-        mismatches = df[mismatch_mask]
-        if not mismatches.empty:
-            logging.warning(
-                f"Name mismatch found between chart data and episode data for {len(mismatches)} records. "
-                f"Example: Chart='{mismatches.iloc[0]['episodeName']}' vs API='{mismatches.iloc[0]['name']}'"
-            )
+    def get_charts_eps_file(self, chart_file: str, regions: list = ["us"]) -> pd.DataFrame:
+        df_result = pd.DataFrame()
+        chart_df_all_regions = pd.read_parquet(chart_file)
+        for region in regions:
+            chart_df = chart_df_all_regions.loc[chart_df_all_regions['region'] == region]
+            episodeUris_list = chart_df['episodeUri'].tolist()
+            eps_df = self.get_transformed_search_eps(chart_file=chart_file, region=region, episodeUris_list=episodeUris_list)
+            merged_df = pd.merge(chart_df, eps_df, left_on='episodeUri', right_on='id', how='left')
+
+            name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
+            if not name_mismatch.empty:
+                    raise ValueError("Name mismatch found between chart data and episode data.")
+
+            df_result = pd.concat([df_result, merged_df], ignore_index=True)
+        df_result = df_result.drop(columns=['id','name'])
+        return df_result
 
     def get_charts_eps(self, chart: str = "top-episodes", regions: list = ["us"]) -> pd.DataFrame:
         df_result = pd.DataFrame()
@@ -207,23 +206,12 @@ class SpotifyAPI:
             eps_df = self.get_transformed_search_eps(chart=chart, region=region)
             
             merged_df = pd.merge(chart_df, eps_df, left_on='episodeUri', right_on='id', how='left')
-            self._check_name_mismatch(merged_df)
-            
+
+            name_mismatch = merged_df[merged_df['episodeName'] != merged_df['name']]
+            if not name_mismatch.empty:
+                    raise ValueError("Name mismatch found between chart data and episode data.")
+
             df_result = pd.concat([df_result, merged_df], ignore_index=True)
         
-        return df_result.drop(columns=['id','name'])
-
-    def get_charts_eps_file(self, chart_file: str, regions: list = ["us"]) -> pd.DataFrame:
-        df_result = pd.DataFrame()
-        chart_df_all_regions = pd.read_parquet(chart_file)
-        for region in regions:
-            chart_df = chart_df_all_regions.loc[chart_df_all_regions['region'] == region]
-            episodeUris_list = chart_df['episodeUri'].tolist()
-            eps_df = self.get_transformed_search_eps(region=region, episodeUris_list=episodeUris_list)
-            
-            merged_df = pd.merge(chart_df, eps_df, left_on='episodeUri', right_on='id', how='left')
-            self._check_name_mismatch(merged_df)
-
-            df_result = pd.concat([df_result, merged_df], ignore_index=True)
-            
-        return df_result.drop(columns=['id','name'])
+        df_result = df_result.drop(columns=['id','name'])
+        return df_result

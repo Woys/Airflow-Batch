@@ -4,7 +4,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from airflow.sdk import Variable
+from airflow.models import Variable
 from airflow.sdk import dag, get_current_context, task
 from pendulum import datetime, duration
 
