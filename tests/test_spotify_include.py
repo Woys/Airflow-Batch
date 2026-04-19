@@ -287,7 +287,7 @@ def test_get_charts_eps_file_merges_and_drops_id_name(monkeypatch: pytest.Monkey
     assert "name" not in frame.columns
 
 
-def test_get_charts_eps_file_warns_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI, caplog: pytest.LogCaptureFixture) -> None:
+def test_get_charts_eps_file_raises_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI) -> None:
     chart_df = pd.DataFrame([{"region": "us", "episodeUri": "id1", "episodeName": "Expected"}])
     monkeypatch.setattr(spotify_eps.pd, "read_parquet", lambda path: chart_df)
     monkeypatch.setattr(
@@ -296,8 +296,8 @@ def test_get_charts_eps_file_warns_on_name_mismatch(monkeypatch: pytest.MonkeyPa
         lambda **kwargs: pd.DataFrame({"id": ["id1"], "name": ["Other"]}),
     )
 
-    api.get_charts_eps_file("chart.parquet", regions=["us"])
-    assert "Name mismatch found between chart data and episode data" in caplog.text
+    with pytest.raises(ValueError, match="Name mismatch"):
+        api.get_charts_eps_file("chart.parquet", regions=["us"])
 
 
 def test_get_charts_eps_merges_regions(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI) -> None:
@@ -328,7 +328,7 @@ def test_get_charts_eps_merges_regions(monkeypatch: pytest.MonkeyPatch, api: spo
     assert "name" not in frame.columns
 
 
-def test_get_charts_eps_warns_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI, caplog: pytest.LogCaptureFixture) -> None:
+def test_get_charts_eps_raises_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, api: spotify_eps.SpotifyAPI) -> None:
     monkeypatch.setattr(
         api,
         "get_transformed_podcastchart",
@@ -342,5 +342,5 @@ def test_get_charts_eps_warns_on_name_mismatch(monkeypatch: pytest.MonkeyPatch, 
         lambda **kwargs: pd.DataFrame({"id": ["id1"], "name": ["Different"]}),
     )
 
-    api.get_charts_eps(regions=["us"])
-    assert "Name mismatch found between chart data and episode data" in caplog.text
+    with pytest.raises(ValueError, match="Name mismatch"):
+        api.get_charts_eps(regions=["us"])
