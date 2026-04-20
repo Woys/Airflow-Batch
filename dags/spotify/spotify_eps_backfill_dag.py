@@ -18,7 +18,8 @@ s3_key_out = 'top-podcasts/'
 today = '{{ ds }}'
 
 
-regions = ["ar","au","at","br","ca","cl" ,"co","fr","de","in","id","ie","it","jp","mx","nz","ph","pl","es","nl","gb","us"]
+# regions = ["ar","au","at","br","ca","cl" ,"co","fr","de","in","id","ie","it","jp","mx","nz","ph","pl","es","nl","gb","us"]
+regions = ["in", "us", "br", "jp", "gb", "ca", "de", "fr", "id", "au"]
 
 params = {
     "start_date": Param("", type="string", format="date-time"),
